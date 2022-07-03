@@ -2,6 +2,8 @@ package foo
 
 import dotty.tools.repl.{ ReplDriver, ReplCompiler, State }
 
+import dotty.tools.dotc.core.{ Contexts, Symbols, Types }
+
 object Test {
 
   val classpath = getClass.getClassLoader match {
@@ -14,13 +16,6 @@ object Test {
     case _ =>
       ""
   }
-
-  /*
-  val classpath =
-    "/Users/cchantep/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala3-library_3/3.1.3-RC5/scala3-library_3-3.1.3-RC5.jar"
-   */
-
-  println(classpath)
 
   val replDriver = new ReplDriver(
     Array("-classpath", classpath),
@@ -38,7 +33,20 @@ object Test {
 
   val state: State = newRun(initialState)
 
+  implicit def defaultCtx: Contexts.Context = state.context
+
+  val tpe: Types.Type =
+    Symbols.requiredClassRef(classOf[AnyValChild].getName)
+
+  case class AnyValChild(value: String) extends AnyVal
+
   def main(args: Array[String]): Unit = {
-    replCompiler.typeCheck("case class TestClass1(name: String)")(using state)
+    println(s"tpe = ${tpe.typeSymbol.isValueClass} / ${tpe.classSymbol.asClass.classDenot.superClass}")
+    /*
+     Expected: "true / class AnyVal"
+     Actual: "tpe = false / val <none>"
+
+     Workaround is to move `AnyValChild` outside the `Test` object
+     */
   }
 }
